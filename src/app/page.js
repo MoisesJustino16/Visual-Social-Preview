@@ -352,7 +352,7 @@ export default function App() {
                             <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full" alt="Avatar"/>
                           </div>
                           <div className="flex flex-col">
-                              <span className="text-white text-[13px] font-black tracking-wide leading-none flex items-center gap-1">thau.app <CheckCircle size={10} className="fill-blue-400 text-white border-none"/> <span className="text-white/40 font-bold ml-1 text-[11px]">2h</span></span>
+                              <span className="text-white text-[13px] font-black tracking-wide leading-none flex items-center gap-1">thau.preview<CheckCircle size={10} className="fill-blue-400 text-white border-none"/> <span className="text-white/40 font-bold ml-1 text-[11px]">2h</span></span>
                               <span className="text-white/50 text-[10px] font-black uppercase tracking-widest mt-1">Anúncio</span>
                           </div>
                       </div>
@@ -389,7 +389,7 @@ export default function App() {
                       <div className="w-11 h-11 rounded-full bg-black p-0.5 border border-neutral-100 shadow-xl overflow-hidden">
                         <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full border border-white" alt="Icon"/>
                       </div>
-                      <span className="font-black text-base text-black tracking-tighter">thau.app</span>
+                      <span className="font-black text-base text-black tracking-tighter">thau.preview</span>
                    </div>
                    <MoreHorizontal className="w-7 h-7 text-neutral-200" />
                 </div>
@@ -427,7 +427,7 @@ export default function App() {
                         </div>
                         <div className="absolute left-8 bottom-16 right-32 z-20 text-white pointer-events-none">
                             <div className="flex items-center gap-5 mb-6">
-                                <span className="font-black text-xl tracking-tighter">thau.app</span>
+                                <span className="font-black text-xl tracking-tighter">thau.preview</span>
                                 <button className="text-[10px] font-black border-2 border-white/40 px-6 py-2.5 rounded-2xl uppercase tracking-widest backdrop-blur-3xl bg-white/10 hover:bg-white/20 transition-all">Seguir</button>
                             </div>
                             <p className="text-sm leading-relaxed mb-6 line-clamp-2 font-bold text-white/90">{caption}</p>
@@ -445,7 +445,7 @@ export default function App() {
                       <Bookmark className="w-9 h-9 stroke-[2.8]" />
                    </div>
                    <p className="font-black text-lg mb-2 text-black tracking-tight">8,241 gostos</p>
-                   <p className="text-sm text-neutral-900 leading-relaxed font-medium"><span className="font-black mr-4 uppercase tracking-tighter text-base">thau.app</span>{caption}</p>
+                   <p className="text-sm text-neutral-900 leading-relaxed font-medium"><span className="font-black mr-4 uppercase tracking-tighter text-base">thau.preview</span>{caption}</p>
                 </div>
               )}
            </div>
