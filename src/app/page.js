@@ -25,7 +25,7 @@ export default function App() {
   // --- ESTADOS DO PROJETO ATUAL ---
   const [postId, setPostId] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
-  const [platform, setPlatform] = useState('story'); // Story como padrão
+  const [platform, setPlatform] = useState('story'); // Story como padrão definitivo
   const [mediaType, setMediaType] = useState('video'); 
   const [status, setStatus] = useState('pending'); 
   const [mediaUrl, setMediaUrl] = useState(DEMO_VIDEO);
@@ -340,7 +340,7 @@ export default function App() {
               
               {/* Topo do Feed */}
               {platform === 'feed' && (
-                <div className="flex items-center justify-between p-5 bg-white">
+                <div className="flex items-center justify-between p-4 bg-white">
                    <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-black p-0.5 border border-neutral-100">
                         <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full border border-white" alt="THAU"/>
