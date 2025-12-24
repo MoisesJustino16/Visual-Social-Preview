@@ -191,7 +191,7 @@ export default function App() {
           
           {/* Header Sidebar */}
           <div className="p-6 border-b border-gray-100">
-            <h1 className="text-2xl font-bold text-purple-600">Visual Social</h1>
+            <h1 className="text-2xl font-bold text-purple-600">THAU App</h1>
             <p className="text-xs text-gray-400 font-bold tracking-widest mt-1">AGENCY DASHBOARD</p>
             
             {/* Abas de Navegação */}
