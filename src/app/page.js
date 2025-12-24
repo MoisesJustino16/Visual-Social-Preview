@@ -98,12 +98,16 @@ export default function App() {
       }])
       .select().single();
 
-    if (error) return alert("Erro ao salvar no banco.");
+    if (error) {
+      console.error(error);
+      return alert("Erro ao salvar no banco.");
+    }
 
     setPostId(data.id);
     const link = `${window.location.origin}?id=${data.id}`;
     setGeneratedLink(link);
     fetchProjects();
+    alert("Projeto publicado! Link gerado com sucesso.");
   };
 
   // Cliente: Aprovar ou Reprovar
@@ -340,7 +344,7 @@ export default function App() {
               
               {/* Topo do Feed */}
               {platform === 'feed' && (
-                <div className="flex items-center justify-between p-4 bg-white">
+                <div className="flex items-center justify-between p-5 bg-white">
                    <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-black p-0.5 border border-neutral-100">
                         <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full border border-white" alt="THAU"/>
