@@ -1,19 +1,21 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-// Correção: Usando link CDN para funcionar no Preview do navegador sem erros de build
+// USANDO IMPORTAÇÃO VIA WEB PARA FUNCIONAR AQUI NA PREVIEW.
+// No seu computador, se tiver instalado 'npm install @supabase/supabase-js', 
+// você pode trocar por: import { createClient } from '@supabase/supabase-js';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js'; 
 import { 
   Upload, Heart, MessageCircle, Send, MoreHorizontal, Music2, 
   ArrowLeft, Link as LinkIcon, CheckCircle, Bookmark, XCircle, 
-  Share2, Copy, Layout, Plus, RefreshCw, Smartphone, ChevronLeft, X, AlertTriangle, User, Hash
+  Share2, Copy, Layout, Plus, RefreshCw, Smartphone, ChevronLeft, X, AlertTriangle, User, Hash, BarChart3
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SUPABASE ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Inicializa o cliente de forma segura
+// Inicialização segura
 const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
   : null;
@@ -21,24 +23,24 @@ const supabase = (supabaseUrl && supabaseKey)
 const DEMO_VIDEO = "https://assets.mixkit.co/videos/preview/mixkit-girl-taking-a-selfie-in-a-field-of-flowers-3444-large.mp4";
 
 export default function App() {
-  // --- ESTADOS GERAIS ---
+  // --- ESTADOS DE NAVEGAÇÃO ---
   const [isClientView, setIsClientView] = useState(false);
   const [activeTab, setActiveTab] = useState('new'); 
   const [projects, setProjects] = useState([]); 
 
-  // --- DADOS DO POST (PERSONALIZÁVEIS) ---
+  // --- DADOS DO POST ---
   const [postId, setPostId] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
   const [platform, setPlatform] = useState('story'); 
   const [mediaType, setMediaType] = useState('video'); 
   const [status, setStatus] = useState('pending'); 
   const [mediaUrl, setMediaUrl] = useState(DEMO_VIDEO);
+  const [caption, setCaption] = useState("Confira as novidades da semana! #THAU");
   
-  // Novos campos de personalização
+  // --- PERSONALIZAÇÃO DO PERFIL (NOVOS CAMPOS) ---
   const [profileName, setProfileName] = useState('thau.preview');
   const [statLikes, setStatLikes] = useState('12.4k');
   const [statComments, setStatComments] = useState('342');
-  const [caption, setCaption] = useState("Confira o novo lançamento da THAU. #Agency #Preview");
   
   // --- INTERATIVIDADE ---
   const [comments, setComments] = useState([]);
@@ -66,6 +68,19 @@ export default function App() {
 
   // --- 2. FUNÇÕES DE DADOS ---
 
+  // Helper para esconder/ler dados extras na legenda (Truque para não precisar alterar o banco de dados agora)
+  const packMetadata = (text, meta) => `${text}|||${JSON.stringify(meta)}`;
+  const unpackMetadata = (fullText) => {
+    if (!fullText) return { text: "", meta: {} };
+    const parts = fullText.split('|||');
+    if (parts.length > 1) {
+        try {
+            return { text: parts[0], meta: JSON.parse(parts[1]) };
+        } catch (e) { return { text: fullText, meta: {} }; }
+    }
+    return { text: fullText, meta: {} };
+  };
+
   async function fetchProjects() {
     if (!supabase) return;
     try {
@@ -73,7 +88,14 @@ export default function App() {
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
-      if (data) setProjects(data);
+      if (data) {
+          // Limpa a legenda para mostrar no histórico sem o código oculto
+          const cleanData = data.map(p => ({
+              ...p,
+              caption: unpackMetadata(p.caption).text
+          }));
+          setProjects(cleanData);
+      }
     } catch (error) {
       console.error("Erro ao buscar projetos:", error);
     }
@@ -87,15 +109,16 @@ export default function App() {
       if (post) {
         setPostId(post.id);
         setMediaUrl(post.media_url);
-        setCaption(post.caption || "");
         setPlatform(post.platform || 'story');
         setMediaType(post.media_type || 'video');
         setStatus(post.status || 'pending');
         
-        // Carrega dados personalizados se existirem (fallback para padrão se não)
-        if (post.profile_name) setProfileName(post.profile_name);
-        if (post.stat_likes) setStatLikes(post.stat_likes);
-        if (post.stat_comments) setStatComments(post.stat_comments);
+        // Recupera os dados personalizados da legenda
+        const { text, meta } = unpackMetadata(post.caption);
+        setCaption(text);
+        if (meta.profileName) setProfileName(meta.profileName);
+        if (meta.statLikes) setStatLikes(meta.statLikes);
+        if (meta.statComments) setStatComments(meta.statComments);
 
         setGeneratedLink(`${window.location.origin}?id=${post.id}`);
         
@@ -112,25 +135,18 @@ export default function App() {
 
     setIsUploading(true);
     try {
-      // Objeto com os dados para salvar
-      const newPostData = { 
-        media_url: mediaUrl, 
-        media_type: mediaType, 
-        platform: platform, 
-        caption: platform === 'story' ? "" : caption,
-        status: 'pending',
-        // Salvando os dados personalizados (Nota: requer colunas no DB se quiser persistir)
-        // Se as colunas não existirem no Supabase, ele pode ignorar ou dar erro dependendo da config.
-        // Para este exemplo funcionar sem migração de banco, vamos assumir que o usuário criou ou que
-        // estamos apenas simulando a persistência visual na sessão atual se falhar.
-        profile_name: profileName,
-        stat_likes: statLikes,
-        stat_comments: statComments
-      };
+      // Empacota os dados personalizados junto com a legenda para salvar tudo junto
+      const fullCaption = packMetadata(caption, { profileName, statLikes, statComments });
 
       const { data, error } = await supabase
         .from('posts')
-        .insert([newPostData])
+        .insert([{ 
+            media_url: mediaUrl, 
+            media_type: mediaType, 
+            platform: platform, 
+            caption: fullCaption, 
+            status: 'pending'
+        }])
         .select().single();
 
       if (error) throw error;
@@ -140,8 +156,7 @@ export default function App() {
       setGeneratedLink(link);
       fetchProjects();
     } catch (err) {
-      alert("Aviso: Projeto salvo, mas verifique se criou as colunas 'profile_name', 'stat_likes' e 'stat_comments' no Supabase para guardar a personalização.");
-      console.error(err);
+      alert("Erro ao salvar: " + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -173,7 +188,7 @@ export default function App() {
       setMediaType(file.type.startsWith('video') ? 'video' : 'image');
     } catch (e) { 
       console.error(e);
-      alert("Erro no upload. Verifique o Supabase."); 
+      alert("Erro no upload. Verifique o bucket 'uploads' no Supabase."); 
     } finally { 
       setIsUploading(false); 
     }
@@ -253,42 +268,45 @@ export default function App() {
                         </div>
                     </div>
 
-                    {/* SECÇÃO DE PERSONALIZAÇÃO DO PERFIL */}
+                    {/* === PERSONALIZAÇÃO DO PERFIL (NOVO) === */}
                     <div className="bg-neutral-50 p-6 rounded-[28px] border border-neutral-100 space-y-4">
-                        <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                            <User size={12}/> Personalização do Perfil
-                        </label>
+                        <div className="flex items-center gap-2 mb-2">
+                            <User size={14} className="text-black"/>
+                            <label className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Personalização da Preview</label>
+                        </div>
                         
                         <div className="space-y-3">
                             <div>
-                                <label className="text-[10px] font-bold text-neutral-400 ml-2">Username (@)</label>
+                                <label className="text-[9px] font-bold text-neutral-400 ml-2 uppercase tracking-wide">Nome do Perfil (@)</label>
                                 <input 
-                                    className="w-full bg-white border border-neutral-200 rounded-xl p-3 text-xs font-bold focus:border-black outline-none transition-all"
+                                    className="w-full bg-white border border-neutral-200 rounded-xl p-3 text-xs font-bold focus:border-black outline-none transition-all placeholder:text-neutral-300"
                                     value={profileName}
                                     onChange={(e) => setProfileName(e.target.value)}
-                                    placeholder="Ex: minha.marca"
+                                    placeholder="Ex: thau.app"
                                 />
                             </div>
                             <div className="flex gap-3">
                                 <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-neutral-400 ml-2">Likes</label>
+                                    <label className="text-[9px] font-bold text-neutral-400 ml-2 uppercase tracking-wide">Likes</label>
                                     <div className="relative">
                                         <Heart size={12} className="absolute left-3 top-3.5 text-neutral-300"/>
                                         <input 
-                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none"
+                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none placeholder:text-neutral-300"
                                             value={statLikes}
                                             onChange={(e) => setStatLikes(e.target.value)}
+                                            placeholder="12k"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-neutral-400 ml-2">Comentários</label>
+                                    <label className="text-[9px] font-bold text-neutral-400 ml-2 uppercase tracking-wide">Comentários</label>
                                     <div className="relative">
                                         <MessageCircle size={12} className="absolute left-3 top-3.5 text-neutral-300"/>
                                         <input 
-                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none"
+                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none placeholder:text-neutral-300"
                                             value={statComments}
                                             onChange={(e) => setStatComments(e.target.value)}
+                                            placeholder="342"
                                         />
                                     </div>
                                 </div>
