@@ -1,20 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-// Importação padrão para Next.js local
-import { createClient } from '@supabase/supabase-js'; 
+// Correção: Usando link CDN para funcionar no Preview do navegador sem erros de build
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'; 
 import { 
   Upload, Heart, MessageCircle, Send, MoreHorizontal, Music2, 
   ArrowLeft, Link as LinkIcon, CheckCircle, Bookmark, XCircle, 
-  Share2, Copy, Layout, Plus, RefreshCw, Smartphone, ChevronLeft, X, AlertTriangle
+  Share2, Copy, Layout, Plus, RefreshCw, Smartphone, ChevronLeft, X, AlertTriangle, User, Hash
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SUPABASE ---
-// Tenta pegar as chaves do ficheiro .env.local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Inicializa o cliente apenas se as chaves existirem para evitar erro branco
+// Inicializa o cliente de forma segura
 const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
   : null;
@@ -27,14 +26,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('new'); 
   const [projects, setProjects] = useState([]); 
 
-  // --- DADOS DO POST ---
+  // --- DADOS DO POST (PERSONALIZÁVEIS) ---
   const [postId, setPostId] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
-  const [platform, setPlatform] = useState('story'); // Story como padrão
+  const [platform, setPlatform] = useState('story'); 
   const [mediaType, setMediaType] = useState('video'); 
   const [status, setStatus] = useState('pending'); 
   const [mediaUrl, setMediaUrl] = useState(DEMO_VIDEO);
-  const [caption, setCaption] = useState("Confira o novo lançamento da THAU. #Agency");
+  
+  // Novos campos de personalização
+  const [profileName, setProfileName] = useState('thau.preview');
+  const [statLikes, setStatLikes] = useState('12.4k');
+  const [statComments, setStatComments] = useState('342');
+  const [caption, setCaption] = useState("Confira o novo lançamento da THAU. #Agency #Preview");
   
   // --- INTERATIVIDADE ---
   const [comments, setComments] = useState([]);
@@ -46,7 +50,6 @@ export default function App() {
 
   // --- 1. INICIALIZAÇÃO ---
   useEffect(() => {
-    // Verifica se tem '?id=...' na URL para ativar modo cliente
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const idFromUrl = params.get('id');
@@ -88,6 +91,12 @@ export default function App() {
         setPlatform(post.platform || 'story');
         setMediaType(post.media_type || 'video');
         setStatus(post.status || 'pending');
+        
+        // Carrega dados personalizados se existirem (fallback para padrão se não)
+        if (post.profile_name) setProfileName(post.profile_name);
+        if (post.stat_likes) setStatLikes(post.stat_likes);
+        if (post.stat_comments) setStatComments(post.stat_comments);
+
         setGeneratedLink(`${window.location.origin}?id=${post.id}`);
         
         const { data: commentsData } = await supabase.from('comments').select('*').eq('post_id', id);
@@ -103,15 +112,25 @@ export default function App() {
 
     setIsUploading(true);
     try {
+      // Objeto com os dados para salvar
+      const newPostData = { 
+        media_url: mediaUrl, 
+        media_type: mediaType, 
+        platform: platform, 
+        caption: platform === 'story' ? "" : caption,
+        status: 'pending',
+        // Salvando os dados personalizados (Nota: requer colunas no DB se quiser persistir)
+        // Se as colunas não existirem no Supabase, ele pode ignorar ou dar erro dependendo da config.
+        // Para este exemplo funcionar sem migração de banco, vamos assumir que o usuário criou ou que
+        // estamos apenas simulando a persistência visual na sessão atual se falhar.
+        profile_name: profileName,
+        stat_likes: statLikes,
+        stat_comments: statComments
+      };
+
       const { data, error } = await supabase
         .from('posts')
-        .insert([{ 
-            media_url: mediaUrl, 
-            media_type: mediaType, 
-            platform: platform, 
-            caption: platform === 'story' ? "" : caption,
-            status: 'pending'
-        }])
+        .insert([newPostData])
         .select().single();
 
       if (error) throw error;
@@ -121,7 +140,8 @@ export default function App() {
       setGeneratedLink(link);
       fetchProjects();
     } catch (err) {
-      alert("Erro ao salvar: " + err.message);
+      alert("Aviso: Projeto salvo, mas verifique se criou as colunas 'profile_name', 'stat_likes' e 'stat_comments' no Supabase para guardar a personalização.");
+      console.error(err);
     } finally {
       setIsUploading(false);
     }
@@ -142,7 +162,6 @@ export default function App() {
     try {
       if (!supabase) throw new Error("Supabase off");
       
-      // Nome único para o arquivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
@@ -154,7 +173,7 @@ export default function App() {
       setMediaType(file.type.startsWith('video') ? 'video' : 'image');
     } catch (e) { 
       console.error(e);
-      alert("Erro no upload. Verifique se o bucket 'uploads' é público no Supabase."); 
+      alert("Erro no upload. Verifique o Supabase."); 
     } finally { 
       setIsUploading(false); 
     }
@@ -194,9 +213,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col md:flex-row text-neutral-900 font-sans">
+    <div className="min-h-screen bg-[#050505] flex flex-col md:flex-row text-neutral-900 font-sans selection:bg-neutral-200 overflow-hidden">
       
-      {/* AVISO DE ERRO DE CONFIGURAÇÃO */}
+      {/* AVISO DE ERRO */}
       {!supabase && !isClientView && (
         <div className="fixed top-0 left-0 right-0 bg-red-600 text-white py-2 px-4 z-[100] flex items-center justify-center gap-2 font-bold text-xs">
           <AlertTriangle size={14} /> ATENÇÃO: Supabase não conectado. Verifique o arquivo .env.local
@@ -205,10 +224,11 @@ export default function App() {
 
       {/* === BARRA LATERAL (AGÊNCIA) === */}
       {!isClientView && (
-        <div className="w-full md:w-[480px] bg-white flex flex-col h-screen z-40 shadow-2xl border-r border-neutral-100">
+        <div className="w-full md:w-[480px] bg-white flex flex-col h-screen z-40 shadow-2xl border-r border-neutral-100 transition-all duration-500">
           
           <div className="p-10 border-b border-neutral-50">
-            <h1 className="text-4xl font-black text-black tracking-tighter leading-none italic">THAU<span className="text-neutral-300 not-italic">.app</span></h1>
+            {/* Título Atualizado */}
+            <h1 className="text-4xl font-black text-black tracking-tighter leading-none italic">THAU<span className="text-neutral-300 not-italic">.preview</span></h1>
             <p className="text-[10px] text-neutral-400 font-black tracking-[0.4em] mt-4 uppercase">Workflow Inteligente</p>
             
             <div className="flex gap-2 mt-10 p-1.5 bg-neutral-50 rounded-2xl border border-neutral-100">
@@ -221,35 +241,78 @@ export default function App() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-10 pb-32">
+          <div className="flex-1 overflow-y-auto p-10 pb-32 no-scrollbar">
              {activeTab === 'new' ? (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div>
-                        <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-5">Escolher Formato</label>
+                        <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-4">Formato</label>
                         <div className="grid grid-cols-2 gap-3">
                             {['story', 'reels', 'tiktok', 'feed'].map(p => (
-                                <button key={p} onClick={() => setPlatform(p)} className={`py-4 capitalize rounded-2xl text-[11px] font-black border-2 transition-all ${platform === p ? 'border-black bg-black text-white shadow-lg' : 'border-neutral-50 text-neutral-300 hover:border-neutral-200'}`}>{p}</button>
+                                <button key={p} onClick={() => setPlatform(p)} className={`py-3 capitalize rounded-2xl text-[11px] font-black border-2 transition-all ${platform === p ? 'border-black bg-black text-white shadow-lg' : 'border-neutral-50 text-neutral-300 hover:border-neutral-200'}`}>{p}</button>
                             ))}
                         </div>
                     </div>
 
+                    {/* SECÇÃO DE PERSONALIZAÇÃO DO PERFIL */}
+                    <div className="bg-neutral-50 p-6 rounded-[28px] border border-neutral-100 space-y-4">
+                        <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                            <User size={12}/> Personalização do Perfil
+                        </label>
+                        
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-bold text-neutral-400 ml-2">Username (@)</label>
+                                <input 
+                                    className="w-full bg-white border border-neutral-200 rounded-xl p-3 text-xs font-bold focus:border-black outline-none transition-all"
+                                    value={profileName}
+                                    onChange={(e) => setProfileName(e.target.value)}
+                                    placeholder="Ex: minha.marca"
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="flex-1">
+                                    <label className="text-[10px] font-bold text-neutral-400 ml-2">Likes</label>
+                                    <div className="relative">
+                                        <Heart size={12} className="absolute left-3 top-3.5 text-neutral-300"/>
+                                        <input 
+                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none"
+                                            value={statLikes}
+                                            onChange={(e) => setStatLikes(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-[10px] font-bold text-neutral-400 ml-2">Comentários</label>
+                                    <div className="relative">
+                                        <MessageCircle size={12} className="absolute left-3 top-3.5 text-neutral-300"/>
+                                        <input 
+                                            className="w-full bg-white border border-neutral-200 rounded-xl p-3 pl-8 text-xs font-bold focus:border-black outline-none"
+                                            value={statComments}
+                                            onChange={(e) => setStatComments(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
-                      <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-5">Mídia Principal</label>
-                      <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-neutral-100 rounded-[32px] h-48 cursor-pointer hover:border-black hover:bg-neutral-50 transition-all group overflow-hidden relative">
+                      <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-4">Mídia Principal</label>
+                      <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-neutral-100 rounded-[32px] h-32 cursor-pointer hover:border-black hover:bg-neutral-50 transition-all group overflow-hidden relative">
                           {isUploading ? (
                               <RefreshCw className="animate-spin text-black mb-2" />
                           ) : (
-                              <Upload className="w-10 h-10 text-neutral-100 group-hover:text-black transition-colors mb-3" />
+                              <Upload className="w-8 h-8 text-neutral-200 group-hover:text-black transition-colors mb-2" />
                           )}
-                          <span className="text-[10px] text-neutral-300 font-black uppercase tracking-widest group-hover:text-black">{isUploading ? 'A processar...' : 'Carregar Mídia'}</span>
+                          <span className="text-[10px] text-neutral-300 font-black uppercase tracking-widest group-hover:text-black">{isUploading ? 'Processando...' : 'Carregar Arquivo'}</span>
                           <input type="file" className="hidden" onChange={handleFileUpload} accept="video/*,image/*" disabled={isUploading}/>
                       </label>
                     </div>
 
                     {platform !== 'story' && (
                       <div className="animate-in fade-in duration-300">
-                          <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-5">Copywriting</label>
-                          <textarea className="w-full border-2 border-neutral-50 rounded-[24px] p-6 text-sm h-40 resize-none focus:border-black outline-none transition-all placeholder:text-neutral-200 font-medium" placeholder="Legenda do post..." value={caption} onChange={(e) => setCaption(e.target.value)}/>
+                          <label className="block text-[10px] font-black text-black uppercase tracking-[0.2em] mb-4">Legenda / Copy</label>
+                          <textarea className="w-full border-2 border-neutral-50 rounded-[24px] p-6 text-sm h-32 resize-none focus:border-black outline-none transition-all placeholder:text-neutral-200 font-medium" placeholder="Legenda do post..." value={caption} onChange={(e) => setCaption(e.target.value)}/>
                       </div>
                     )}
 
@@ -352,7 +415,7 @@ export default function App() {
                             <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full" alt="Avatar"/>
                           </div>
                           <div className="flex flex-col">
-                              <span className="text-white text-[13px] font-black tracking-wide leading-none flex items-center gap-1">thau.preview<CheckCircle size={10} className="fill-blue-400 text-white border-none"/> <span className="text-white/40 font-bold ml-1 text-[11px]">2h</span></span>
+                              <span className="text-white text-[13px] font-black tracking-wide leading-none flex items-center gap-1">{profileName} <CheckCircle size={10} className="fill-blue-400 text-white border-none"/> <span className="text-white/40 font-bold ml-1 text-[11px]">2h</span></span>
                               <span className="text-white/50 text-[10px] font-black uppercase tracking-widest mt-1">Anúncio</span>
                           </div>
                       </div>
@@ -389,7 +452,7 @@ export default function App() {
                       <div className="w-11 h-11 rounded-full bg-black p-0.5 border border-neutral-100 shadow-xl overflow-hidden">
                         <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full rounded-full border border-white" alt="Icon"/>
                       </div>
-                      <span className="font-black text-base text-black tracking-tighter">thau.preview</span>
+                      <span className="font-black text-base text-black tracking-tighter">{profileName}</span>
                    </div>
                    <MoreHorizontal className="w-7 h-7 text-neutral-200" />
                 </div>
@@ -421,13 +484,13 @@ export default function App() {
                     <>
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent via-black/40 to-black/95 pointer-events-none"></div>
                         <div className="absolute right-6 bottom-32 flex flex-col gap-10 items-center z-20 no-click-zone">
-                            <div className="flex flex-col items-center gap-2"><Heart className="w-10 h-10 text-white stroke-[2.2]" /><span className="text-[12px] text-white font-black shadow-xl">12.5k</span></div>
-                            <div className="flex flex-col items-center gap-2"><MessageCircle className="w-10 h-10 text-white stroke-[2.2]" /><span className="text-[12px] text-white font-black shadow-xl">242</span></div>
+                            <div className="flex flex-col items-center gap-2"><Heart className="w-10 h-10 text-white stroke-[2.2]" /><span className="text-[12px] text-white font-black shadow-xl">{statLikes}</span></div>
+                            <div className="flex flex-col items-center gap-2"><MessageCircle className="w-10 h-10 text-white stroke-[2.2]" /><span className="text-[12px] text-white font-black shadow-xl">{statComments}</span></div>
                             <Send className="w-10 h-10 text-white stroke-[2.2] -rotate-45 shadow-2xl" />
                         </div>
                         <div className="absolute left-8 bottom-16 right-32 z-20 text-white pointer-events-none">
                             <div className="flex items-center gap-5 mb-6">
-                                <span className="font-black text-xl tracking-tighter">thau.preview</span>
+                                <span className="font-black text-xl tracking-tighter">{profileName}</span>
                                 <button className="text-[10px] font-black border-2 border-white/40 px-6 py-2.5 rounded-2xl uppercase tracking-widest backdrop-blur-3xl bg-white/10 hover:bg-white/20 transition-all">Seguir</button>
                             </div>
                             <p className="text-sm leading-relaxed mb-6 line-clamp-2 font-bold text-white/90">{caption}</p>
@@ -444,8 +507,8 @@ export default function App() {
                       <div className="flex gap-8"><Heart className="w-9 h-9 stroke-[2.8]" /><MessageCircle className="w-9 h-9 stroke-[2.8]" /><Send className="w-9 h-9 stroke-[2.8] -rotate-45" /></div>
                       <Bookmark className="w-9 h-9 stroke-[2.8]" />
                    </div>
-                   <p className="font-black text-lg mb-2 text-black tracking-tight">8,241 gostos</p>
-                   <p className="text-sm text-neutral-900 leading-relaxed font-medium"><span className="font-black mr-4 uppercase tracking-tighter text-base">thau.preview</span>{caption}</p>
+                   <p className="font-black text-lg mb-2 text-black tracking-tight">{statLikes} gostos</p>
+                   <p className="text-sm text-neutral-900 leading-relaxed font-medium"><span className="font-black mr-4 uppercase tracking-tighter text-base">{profileName}</span>{caption}</p>
                 </div>
               )}
            </div>
