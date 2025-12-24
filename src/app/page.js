@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 // USANDO IMPORTAÇÃO VIA WEB PARA FUNCIONAR AQUI NA PREVIEW.
 // No seu computador, se tiver instalado 'npm install @supabase/supabase-js', 
 // você pode trocar por: import { createClient } from '@supabase/supabase-js';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js'; 
+import { createClient } from '@supabase/supabase-js'; 
 import { 
   Upload, Heart, MessageCircle, Send, MoreHorizontal, Music2, 
   ArrowLeft, Link as LinkIcon, CheckCircle, Bookmark, XCircle, 
