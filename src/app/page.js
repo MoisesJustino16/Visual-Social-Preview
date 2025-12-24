@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-// Correção: Usando o link do CDN esm.sh para resolver o erro de compilação da biblioteca
+// Usando o link do CDN esm.sh para resolver o erro de compilação da biblioteca no ambiente Canvas
 import { createClient } from 'https://esm.sh/@supabase/supabase-js'; 
 import { 
   Upload, Heart, MessageCircle, Send, MoreHorizontal, Music2, 
@@ -13,7 +13,7 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Inicializa o cliente apenas se as variáveis de ambiente estiverem presentes
+// Inicializa o cliente apenas se as chaves existirem
 const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
   : null;
@@ -29,7 +29,7 @@ export default function App() {
   // --- ESTADOS DO PROJETO ATUAL ---
   const [postId, setPostId] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
-  const [platform, setPlatform] = useState('reels'); // 'reels', 'tiktok', 'feed', 'story'
+  const [platform, setPlatform] = useState('reels'); // 'reels', 'tiktok', 'story', 'feed'
   const [mediaType, setMediaType] = useState('video'); 
   const [status, setStatus] = useState('pending'); 
   const [mediaUrl, setMediaUrl] = useState(DEMO_VIDEO);
@@ -73,7 +73,7 @@ export default function App() {
     if (post) {
       setPostId(post.id);
       setMediaUrl(post.media_url);
-      setCaption(post.caption);
+      setCaption(post.caption || "");
       setPlatform(post.platform);
       setMediaType(post.media_type);
       setStatus(post.status || 'pending');
@@ -92,7 +92,7 @@ export default function App() {
           media_url: mediaUrl, 
           media_type: mediaType, 
           platform: platform, 
-          caption: caption,
+          caption: platform === 'story' ? "" : caption,
           status: 'pending'
       }])
       .select()
@@ -104,7 +104,7 @@ export default function App() {
     const link = `${window.location.origin}?id=${data.id}`;
     setGeneratedLink(link);
     fetchProjects();
-    alert("Link criado com sucesso.");
+    alert("Projeto criado com sucesso!");
   };
 
   const updateStatus = async (newStatus) => {
@@ -158,7 +158,6 @@ export default function App() {
     setShowFeedbackModal(true);
   };
 
-  // Badges de Status estilizados em preto/branco
   const getStatusBadge = (s) => {
     if (s === 'approved') return <span className="bg-black text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-black">Aprovado</span>;
     if (s === 'changes') return <span className="bg-white text-red-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border border-red-200">Ajustes</span>;
@@ -173,7 +172,6 @@ export default function App() {
         <div className="w-full md:w-[450px] bg-white flex flex-col h-screen z-40 shadow-2xl border-r border-gray-100">
           
           <div className="p-8 border-b border-gray-100">
-            {/* LOGO THAU APP EM PRETO */}
             <h1 className="text-3xl font-black text-black tracking-tighter">THAU<span className="text-gray-400">.app</span></h1>
             <p className="text-[10px] text-gray-400 font-bold tracking-[0.2em] mt-1 uppercase">Creative Approval Workflow</p>
             
@@ -235,7 +233,7 @@ export default function App() {
                 </div>
              )}
 
-             {activeTab === 'dashboard' && (
+             {activeTab === 'dashboard' && ( activeTab === 'dashboard' &&
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
                     {projects.length === 0 && <div className="text-center py-20 text-gray-300"><Layout size={40} className="mx-auto mb-4 opacity-20"/><p className="text-sm">Nenhum projeto criado.</p></div>}
                     
@@ -279,7 +277,7 @@ export default function App() {
                 <div className="flex items-center gap-3">
                     {isClientView ? (
                          <div>
-                            <h2 className="font-bold text-black text-sm">Aprovação</h2>
+                            <h2 className="font-bold text-black text-sm">Aprovação de Conteúdo</h2>
                          </div>
                     ) : (
                          <div className="flex items-center gap-2">
@@ -320,7 +318,7 @@ export default function App() {
             scale-[0.9] md:scale-100 origin-center ring-1 ring-white/10
         `}>
            
-           {/* Header App Fake */}
+           {/* Header App Fake (Escondido no Story para visual mais real) */}
            {platform !== 'story' && (
                 <div className={`z-30 p-5 flex items-center justify-between ${platform === 'feed' ? 'text-black bg-white/90 backdrop-blur-sm border-b' : 'text-white bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0'}`}>
                     <ArrowLeft className="w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity" onClick={() => isClientView ? null : setPostId(null)} />
@@ -378,10 +376,10 @@ export default function App() {
                         <div className="absolute top-5 left-4 right-4 z-30 flex justify-between items-center pointer-events-none">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden">
-                                    <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full" />
+                                    <img src="https://ui-avatars.com/api/?name=THAU&background=000&color=fff" className="w-full h-full" alt="Avatar" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-white text-xs font-bold flex items-center gap-1">thau.app <span className="text-gray-300 font-normal">14 h</span></span>
+                                    <span className="text-white text-[11px] font-bold flex items-center gap-1 leading-none">thau.app <span className="text-gray-300 font-normal">14 h</span></span>
                                 </div>
                             </div>
                             <div className="pointer-events-auto cursor-pointer">
@@ -389,10 +387,10 @@ export default function App() {
                             </div>
                         </div>
 
-                        {/* Footer Story (Input msg + Like + Share) */}
+                        {/* Footer Story (Campo de mensagem) */}
                         <div className="absolute bottom-6 left-4 right-4 z-30 flex items-center gap-4 no-click-zone">
-                            <div className="flex-1 h-11 border border-white/30 rounded-full flex items-center px-4 backdrop-blur-sm">
-                                <span className="text-white/70 text-sm">Enviar mensagem</span>
+                            <div className="flex-1 h-11 border border-white/40 rounded-full flex items-center px-4 backdrop-blur-sm bg-black/10">
+                                <span className="text-white/70 text-sm font-light">Enviar mensagem</span>
                             </div>
                             <Heart className="text-white w-7 h-7 stroke-[1.5]" />
                             <Send className="text-white w-7 h-7 stroke-[1.5] -rotate-45" />
@@ -421,7 +419,7 @@ export default function App() {
 
               {/* Footer Feed */}
               {platform === 'feed' && (
-                <div className="p-3">
+                <div className="p-3 bg-white">
                    <div className="flex justify-between mb-3 text-black">
                       <div className="flex gap-4"><Heart className="w-6 h-6 stroke-black" /><MessageCircle className="w-6 h-6 stroke-black" /><Send className="w-6 h-6 stroke-black -rotate-45" /></div>
                       <Bookmark className="w-6 h-6 stroke-black" />
@@ -440,7 +438,7 @@ export default function App() {
                     <textarea autoFocus className="w-full border-2 border-gray-100 rounded-xl p-3 mb-4 text-sm bg-gray-50 text-black h-24 resize-none focus:border-black focus:ring-0 outline-none transition-colors" placeholder="Descreva o ajuste necessário..." value={newCommentText} onChange={e=>setNewCommentText(e.target.value)} />
                     <div className="flex gap-2">
                       <button onClick={saveComment} className="bg-black text-white flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors">Salvar Nota</button>
-                      <button onClick={()=>{setShowFeedbackModal(false); if(mediaType === 'video') videoRef.current?.play()}} className="bg-white border-2 border-gray-100 text-gray-500 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:border-gray-300 transition-colors">Cancelar</button>
+                      <button onClick={()=>{setShowFeedbackModal(false); if(mediaType === 'video') videoRef.current?.play()}} className="bg-black/10 text-gray-500 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-gray-200 transition-colors border border-gray-100">Cancelar</button>
                     </div>
                  </div>
               </div>
